@@ -94,9 +94,9 @@ jobs:
       env_name: ${{ env.ENV_NAME }}
       image_tag: ${{ steps.meta.outputs.tag }}
       service_name: frontend
-      namespace: app-frontend
-      deployment_name: app-frontend
-      container_name: app-frontend
+      namespace: frontend-${{ matrix.env }}
+      deployment_name: frontend
+      container_name: frontend
 
     if: github.ref == 'refs/heads/main'
 
