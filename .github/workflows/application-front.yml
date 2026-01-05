@@ -92,6 +92,14 @@ jobs:
     env:
       ENV_NAME: ${{ matrix.env }}
 
+    outputs:
+      env_name: ${{ env.ENV_NAME }}
+      image_tag: ${{ steps.meta.outputs.tag }}
+      service_name: frontend
+      namespace: app-frontend
+      deployment_name: app-frontend
+      container_name: app-frontend
+
     if: github.ref == 'refs/heads/main'
 
     permissions:
@@ -113,17 +121,18 @@ jobs:
           echo "tag=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Select AWS role to assume (by environment)
+        id: aws-role
         run: |
           set -euo pipefail
           case "${ENV_NAME}" in
             staging)
-              echo "AWS_ROLE_ARN=${{ secrets.AWS_ROLE_ARN_APP_STAGING }}" >> "$GITHUB_ENV"
+              echo "arn=${{ secrets.AWS_ROLE_ARN_APP_STAGING }}" >> "$GITHUB_OUTPUT"
               ;;
             dev)
-              echo "AWS_ROLE_ARN=${{ secrets.AWS_ROLE_ARN_APP_DEV }}" >> "$GITHUB_ENV"
+              echo "arn=${{ secrets.AWS_ROLE_ARN_APP_DEV }}" >> "$GITHUB_OUTPUT"
               ;;
             prod)
-              echo "AWS_ROLE_ARN=${{ secrets.AWS_ROLE_ARN_APP_PROD }}" >> "$GITHUB_ENV"
+              echo "arn=${{ secrets.AWS_ROLE_ARN_APP_PROD }}" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "Unknown ENV_NAME=${ENV_NAME}" >&2
@@ -135,7 +144,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-to-assume: ${{ steps.aws-role.outputs.arn }}
 
       - name: Login to ECR
         run: |
@@ -154,9 +163,21 @@ jobs:
             --push \
             .
 
-      - name: Trigger deployment workflow (deploy repo)
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.info('TODO: call deployment repository workflow via workflow_dispatch or workflow_call.');
-            core.info(`image_tag=${{ steps.meta.outputs.tag }}`);
+  deploy:
+    name: Deploy (reusable workflow)
+    needs: app-cd
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      id-token: write
+      contents: read
+
+    uses: cloud-platform-infrastructure/deploy-workflows/.github/workflows/deploy.yml@main
+    with:
+      env_name: ${{ needs.app-cd.outputs.env_name }}
+      service_name: ${{ needs.app-cd.outputs.service_name }}
+      image_tag: ${{ needs.app-cd.outputs.image_tag }}
+      namespace: ${{ needs.app-cd.outputs.namespace }}
+      deployment_name: ${{ needs.app-cd.outputs.deployment_name }}
+      container_name: ${{ needs.app-cd.outputs.container_name }}
+    secrets: inherit
