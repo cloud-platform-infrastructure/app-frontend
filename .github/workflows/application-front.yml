@@ -2,15 +2,13 @@ name: Frontend Application
 
 on:
   push:
-    paths:
-      - "**"
-      - "!k8s/**"
-      - ".github/workflows/**"
+    paths-ignore:
+      - "k8s/**"
+      - ".github/workflows/kubernetes-front.yml"
   pull_request:
-    paths:
-      - "**"
-      - "!k8s/**"
-      - ".github/workflows/**"
+    paths-ignore:
+      - "k8s/**"
+      - ".github/workflows/kubernetes-front.yml"
   workflow_dispatch: {}
 
 permissions:
