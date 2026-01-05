@@ -4,11 +4,11 @@ on:
   push:
     paths-ignore:
       - "k8s/**"
-      - ".github/workflows/kubernetes-front.yml"
+      - ".github/**"
   pull_request:
     paths-ignore:
       - "k8s/**"
-      - ".github/workflows/kubernetes-front.yml"
+      - ".github/**"
   workflow_dispatch: {}
 
 permissions:
